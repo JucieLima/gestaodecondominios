@@ -8,11 +8,11 @@ use Illuminate\Http\Request;
 
 class BilletController extends Controller
 {
-    public function getAll(Request $request)
+    public function getAll(int $property)
     {
         $array = ['error' => ''];
-        $property = $request->input('property');
-        if($property){
+        $confirm = Unit::where('id', $property)->count();
+        if($confirm){
             $user = auth()->user()['id'];
             $unit = Unit::where('id', $property)->where('owner', $user)->count();
             if(!$unit){
@@ -26,7 +26,7 @@ class BilletController extends Controller
             }
             $array['list'] = $billets;
         }else{
-            $array['error'] = 'Para gerar boletos é necessário informar uma unidade!';
+            $array['error'] = 'A unidade informada não foi localizada no sistema!';
         }
         return $array;
     }

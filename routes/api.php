@@ -45,7 +45,7 @@ Route::middleware('auth:api')->group(function(){
     Route::post('/warning/file', [WarningController::class,'addWarningFile']);
 
     //Boletos
-    Route::get('/billets', [BilletController::class,'getAll']);
+    Route::get('/billets/{unit}', [BilletController::class,'getAll']);
 
     //Achados e perdidos
     Route::get('/lost-and-found', [LostAndFoundController::class,'getAll']);
