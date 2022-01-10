@@ -83,8 +83,9 @@ class CreateStartTables extends Migration
             $table->id();
             $table->foreignId('unit')->constrained('units');
             $table->string('title');
+            $table->string('body')->nullable();
             $table->string('status')->default('IN_REVIEW'); //IN_REVIEW, RESOLVED
-            $table->text('photos');
+            $table->text('photos')->nullable();
             $table->timestamps();
         });
 
