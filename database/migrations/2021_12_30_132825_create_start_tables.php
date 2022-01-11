@@ -89,12 +89,12 @@ class CreateStartTables extends Migration
             $table->timestamps();
         });
 
-        Schema::create('lost_and_found', function (Blueprint $table) {
+        Schema::create('lost_and_founds', function (Blueprint $table) {
             $table->id();
             $table->string('status')->default('LOST'); // LOST, RECOVERED
             $table->string('title');
             $table->string('photo');
-            $table->string('description');
+            $table->string('where');
             $table->timestamps();
         });
 
