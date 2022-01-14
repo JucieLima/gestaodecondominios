@@ -29,7 +29,7 @@ class CreateStartTables extends Migration
             $table->unsignedBigInteger('owner');
         });
 
-        Schema::create('unit_peoples', function (Blueprint $table) {
+        Schema::create('unit_people', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->foreignId('unit')->constrained('units');
