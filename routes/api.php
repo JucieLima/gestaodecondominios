@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\AreaController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AuthController;
@@ -9,7 +9,6 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\LostAndFoundController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\UnitController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\WallController;
 use App\Http\Controllers\WarningController;
 
@@ -61,14 +60,19 @@ Route::middleware('auth:api')->group(function(){
     Route::post('unit/{id}/remove-vehicle', [UnitController::class, 'removeVehicle']);
     Route::post('unit/{id}/remove-pet', [UnitController::class, 'removePet']);
 
+    //Areas
+    Route::get('areas',[AreaController::class, 'index']);
+    Route::post('areas/create',[AreaController::class, 'store']);
+    Route::post('areas/{id}',[AreaController::class, 'update']);
+    Route::delete('areas/{id}',[AreaController::class, 'destroy']);
+
     //Reservas
-    Route::get('reservations',[ReservationController::class, 'getReservations']);
     Route::post('reservation/{id}',[ReservationController::class, 'setReservation']);
 
     Route::get('my-reservations',[ReservationController::class, 'getMyReservations']);
     Route::delete('delete-reservation/{id}',[ReservationController::class, 'deleteMyReservation']);
 
-    Route::get('reservations/{id}/disabled-dates',[ReservationController::class, 'getDisabledDates']);
-    Route::get('reservations/{id}/times',[ReservationController::class, 'getTimes']);
+    Route::get('reservation/{id}/disabled-dates',[ReservationController::class, 'getDisabledDates']);
+    Route::get('reservation/{id}/times',[ReservationController::class, 'getTimes']);
 
 });
