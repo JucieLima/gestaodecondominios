@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
+use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,7 @@ class AreaController extends Controller
 
         foreach ($areas as $area){
             $days = explode(',', $area['days']);
+            $workingDays = $days;
 
             $daysGroup = [];
 
@@ -68,6 +70,17 @@ class AreaController extends Controller
                 $dates[$key] .= ', de '. $start . ' às ' . $end;
             }
 
+            $disabledDays = [];
+            $indexDays = 0;
+            for ($i = 0; $i < 7; $i++){
+                if(!in_array($i, $workingDays)){
+                    $disabledDays[] = $i;
+                }else{
+                    $workingDays[$indexDays] = intVal($workingDays[$indexDays]);
+                    $indexDays++;
+                }
+            }
+
             $array['response'][] = [
                 'id' => $area['id'],
                 'title' => $area['title'],
@@ -76,7 +89,8 @@ class AreaController extends Controller
                 'dates' => $dates,
                 'starts_at' => $area['starts_at'],
                 'ends_at' => $area['ends_at'],
-                'days' => $area['days'],
+                'working_days' => $workingDays,
+                'disabled_days' => $disabledDays,
             ];
         }
 
@@ -141,11 +155,30 @@ class AreaController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return JsonResponse
      */
     public function show($id)
     {
-        //
+        $response = [];
+        $find = Area::find($id);
+        if(!$find){
+            $response['error'] = "A área informada não existe no sistema!";
+            return  response()->json($response, 404);
+        }
+
+        $results = Area::find($id)->reservations()
+            ->where("date", ">=", date('Y-m-d'))
+            ->where("date", "<=", date('Y-m-d', strtotime("+3 months")))
+            ->get();
+
+        foreach ($results  as $result){
+            $response['data'][] = [
+                'reservation' => $result,
+                'unit' => $result->unit,
+            ];
+        }
+
+        return  response()->json($response);
     }
 
     /**

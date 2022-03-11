@@ -67,7 +67,7 @@ class ReservationController extends Controller
         }
 
         //Verifica se está fora dos disabled days
-        $existingDisabledDays = AreaDisabledDay::where("area", $id)->where("day", $request->input('date'))->count();
+        $existingDisabledDays = AreaDisabledDay::where("area", $id)->where("date", $request->input('date'))->count();
         if($existingDisabledDays > 0){
             $array['out'] = true;
             $can = false;
@@ -75,7 +75,7 @@ class ReservationController extends Controller
 
         //Verifica se não existe outra reserva no mesmo dia/hora.
         $existingReservation = Reservation::where("area", $id)
-            ->where("day", $request->input('date'). ' '.$request->input('time'))
+            ->where("date", $request->input('date'). ' '.$request->input('time'))
             ->count();
 
         if($existingReservation > 0){
@@ -91,7 +91,7 @@ class ReservationController extends Controller
         $reservation = new Reservation();
         $reservation->unit = $request->input('unit');
         $reservation->area = $id;
-        $reservation->day = $request->input('date') . ' ' . $request->input('time');
+        $reservation->date = $request->input('date') . ' ' . $request->input('time');
         $reservation->save();
 
         $array['result'] = "Reserva realizada com sucesso!";
@@ -202,7 +202,7 @@ class ReservationController extends Controller
 
             //Remover reservas
             $reservations = Reservation::where('area', $id)
-            ->whereBetween('day', [
+            ->whereBetween('date', [
                 $date.' 00:00:00',
                 $date.' 23:59:59'
             ])
@@ -260,18 +260,18 @@ class ReservationController extends Controller
         }
 
         $reservations = Reservation::where('unit', $unit)
-            ->where('day', '>=', date('Y-m-d H:00:00'))
-            ->orderBy('day', 'ASC')
+            ->where('date', '>=', date('Y-m-d H:00:00'))
+            ->orderBy('date', 'ASC')
             ->get();
 
         foreach ($reservations as $reservation){
-           $area = Area::find($reservation['area']);
-           $start = date('d/m/Y H:i:s', strtotime($reservation['day']));
-           $dateEnd = date('d/m/Y H:i:s', strtotime('+1 hour', strtotime($reservation['day'])));
+           $area = Area::find($reservation['area_id']);
+           $start = date('d/m/Y H:i:s', strtotime($reservation['date']));
+           $dateEnd = date('d/m/Y H:i:s', strtotime('+1 hour', strtotime($reservation['date'])));
            $date = $start. ' à ' . $dateEnd;
            $array['list'][] = [
                'id' => $reservation['id'],
-               'area' => $reservation['area'],
+               'area' => $reservation['area_id'],
                'title' => $area['title'],
                'cover' => asset('storage/'.$area['cover']),
                'reservation' => $date,
@@ -297,7 +297,7 @@ class ReservationController extends Controller
             return $array;
         }
 
-        $unit = Unit::where('id', $reservation['unit'])->where('owner', $user['id'])->count();
+        $unit = Unit::where('id', $reservation['unit_id'])->where('owner', $user['id'])->count();
 
         if($unit < 1){
             $array['error'] = "Não é possível excluir reservas realizadas por outros usuários.";

@@ -62,6 +62,7 @@ Route::middleware('auth:api')->group(function(){
 
     //Areas
     Route::get('areas',[AreaController::class, 'index']);
+    Route::get('areas/{id}',[AreaController::class, 'show']);
     Route::post('areas/create',[AreaController::class, 'store']);
     Route::post('areas/{id}',[AreaController::class, 'update']);
     Route::delete('areas/{id}',[AreaController::class, 'destroy']);
