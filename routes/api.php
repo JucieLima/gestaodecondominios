@@ -11,7 +11,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\WallController;
 use App\Http\Controllers\WarningController;
-
+use \App\Http\Controllers\UserController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -76,4 +76,5 @@ Route::middleware('auth:api')->group(function(){
     Route::get('reservation/{id}/disabled-dates',[ReservationController::class, 'getDisabledDates']);
     Route::get('reservation/{id}/times',[ReservationController::class, 'getTimes']);
 
+    Route::resource('user', UserController::class);
 });

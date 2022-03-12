@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -19,8 +21,7 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
-        $array = [ 'error' => '' ];
-
+        $array = [];
 
         $validator = Validator::make($request->all(),[
             'name' => 'required',
@@ -30,54 +31,58 @@ class AuthController extends Controller
             'password_confirmation' => 'required',
         ]);
 
-        if(!$validator->fails()){
-
-            $user = new User();
-            $user->name = $request->input('name');
-            $user->email = $request->input('email');
-            $user->cpf = $request->input('cpf');
-            $user->password = password_hash($request->input('password'), PASSWORD_DEFAULT);
-            $user->role = $request->input('role') != NULL ? $request->input('role')  : 'user';
-            $user->status = $request->input('status') != NULL ? (int) $request->input('status')  : 0;
-
-            $user->save();
-
-            $token = auth()->attempt([
-                'cpf' => $user->cpf,
-                'password' => $request->input('password')
-            ]);
-
-            if(!$token){
-                $array['error'] = 'Ocorreu um erro ao tentar efetuar registro do usuário';
-            }else{
-                $array['token'] = $token;
-                $array['user'] = auth()->user();
-                $array['user']['properties'] = Unit::select(['id', 'name'])->where('owner', $array['user']['id'])->get();
-            }
-
-        }else{
+        if($validator->fails()){
             $array['error'] = $validator->errors()->first();
+            return response()->json($array, 401);
         }
 
-        return $array;
+        $user = new User();
+        $user->name = $request->input('name');
+        $user->email = $request->input('email');
+        $user->cpf = $request->input('cpf');
+        $user->password = password_hash($request->input('password'), PASSWORD_DEFAULT);
+        $user->role = $request->input('role') != NULL ? $request->input('role')  : 'user';
+        $user->status = $request->input('status') != NULL ? (int) $request->input('status')  : 0;
+
+        $user->save();
+
+        $token = auth()->attempt([
+            'cpf' => $user->cpf,
+            'password' => $request->input('password')
+        ]);
+
+        if(!$token){
+            $array['error'] = 'Ocorreu um erro ao tentar obter dados do usuário';
+            return response()->json($array, 500);
+        }
+
+        $array['user']['token'] = $token;
+        $array['user'] = auth()->user();
+        $array['user']['properties'] = Unit::select(['id', 'name'])->where('owner', $array['user']['id'])->get();
+
+        return response()->json($array);
     }
 
-    public function login(Request $request)
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function login(Request $request): JsonResponse
     {
-        $array = ['error' => ''];
+        $array = [];
         $validator = Validator::make($request->all(), [
-            'cpf' => 'required',
+            'email' => 'required',
             'password' => 'required'
         ] );
 
         if(!$validator->fails()){
             $token = auth()->attempt([
-                'cpf' => $request->input('cpf'),
+                'email' => $request->input('email'),
                 'password' => $request->input('password')
             ]);
 
             if(!$token){
-                $array['error'] = 'Ero ao logar, dados não conferem!';
+                $array['error'] = 'Erro ao logar, dados não conferem.';
             }else{
                 $array['token'] = $token;
                 $array['user'] = auth()->user();
@@ -85,22 +90,30 @@ class AuthController extends Controller
             }
 
         }else{
-            $array['error'] = $validator->errors()->first();
+            $array['error'] = $validator->errors();
+            return response()->json($array, 401);
         }
 
-        return $array;
+        return response()->json($array);
     }
 
-    public function validateToken()
+    /**
+     * @return JsonResponse
+     */
+    public function validateToken(): JsonResponse
     {
         $user['user'] = auth()->user();
         $user['user']['properties'] = Unit::select(['id', 'name'])->where('owner', $user['user']['id'])->get();
-        return $user;
+        return response()->json($user);
     }
 
-    public function logout(){
+    /**
+     * @return JsonResponse
+     */
+    public function logout(): JsonResponse
+    {
         auth()->logout();
-        return ['error' => ''];
+        return response()->json(['response' => 'Logout realizado com sucesso!']);
     }
 
 }
