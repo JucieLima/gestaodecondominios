@@ -66,15 +66,12 @@ Route::middleware('auth:api')->group(function(){
     Route::post('areas/create',[AreaController::class, 'store']);
     Route::post('areas/{id}',[AreaController::class, 'update']);
     Route::delete('areas/{id}',[AreaController::class, 'destroy']);
+    Route::get('areas/{id}/disabled-dates',[AreaController::class, 'getDisabledDates']);
 
     //Reservas
     Route::post('reservation/{id}',[ReservationController::class, 'setReservation']);
-
     Route::get('my-reservations',[ReservationController::class, 'getMyReservations']);
     Route::delete('delete-reservation/{id}',[ReservationController::class, 'deleteMyReservation']);
-
-    Route::get('reservation/{id}/disabled-dates',[ReservationController::class, 'getDisabledDates']);
     Route::get('reservation/{id}/times',[ReservationController::class, 'getTimes']);
-
     Route::resource('user', UserController::class);
 });

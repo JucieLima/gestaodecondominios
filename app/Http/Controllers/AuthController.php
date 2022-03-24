@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Resident;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,23 +76,33 @@ class AuthController extends Controller
             'password' => 'required'
         ] );
 
-        if(!$validator->fails()){
-            $token = auth()->attempt([
-                'email' => $request->input('email'),
-                'password' => $request->input('password')
-            ]);
-
-            if(!$token){
-                $array['error'] = 'Erro ao logar, dados não conferem.';
-            }else{
-                $array['token'] = $token;
-                $array['user'] = auth()->user();
-                $array['user']['properties'] = Unit::select(['id', 'name'])->where('owner', $array['user']['id'])->get();
-            }
-
-        }else{
-            $array['error'] = $validator->errors();
+        if($validator->fails()){
+            $array['error'] = $validator->errors()->first();
             return response()->json($array, 401);
+        }
+
+        $token = auth()->attempt([
+            'email' => $request->input('email'),
+            'password' => $request->input('password')
+        ]);
+
+        if(!$token){
+            $array['error'] = 'Erro ao logar, dados não conferem.';
+            return response()->json($array, 401);
+        }
+
+        $array['token'] = [
+            'access_token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => (auth()->factory()->getTTL() * 60) + time(),
+        ];
+
+        $array['user'] = auth()->user();
+
+
+        if($array['user']['role'] == 'resident' ){
+            $unit = Resident::where('user_id', $array['user']['id'])->with('unit')->get()->toArray();
+            $array['unit'] = $unit[0]['unit'];
         }
 
         return response()->json($array);
@@ -103,7 +114,8 @@ class AuthController extends Controller
     public function validateToken(): JsonResponse
     {
         $user['user'] = auth()->user();
-        $user['user']['properties'] = Unit::select(['id', 'name'])->where('owner', $user['user']['id'])->get();
+        $user['user']['properties'] = Unit::select(['id', 'name'
+                  ])->where('owner', $user['user']['id'])->get();
         return response()->json($user);
     }
 

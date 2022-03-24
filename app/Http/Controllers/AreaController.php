@@ -3,8 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
-use App\Models\Reservation;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\AreaDisabledDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -85,13 +84,36 @@ class AreaController extends Controller
                 'id' => $area['id'],
                 'title' => $area['title'],
                 'allowed' => $area['allowed'],
-                'cover' => asset('storage/'.$area['cover']),
+                'cover' => 'storage/'.$area['cover'],
                 'dates' => $dates,
                 'starts_at' => $area['starts_at'],
                 'ends_at' => $area['ends_at'],
                 'working_days' => $workingDays,
                 'disabled_days' => $disabledDays,
+                'mode' => $area['mode'],
             ];
+        }
+
+        return response()->json($array);
+    }
+
+    /**
+     * @param int $id
+     * @return JsonResponse
+     */
+    public function getDisabledDates(int $id): JsonResponse
+    {
+        $array = [];
+
+        $area = Area::find($id);
+        if(!$area){
+            $array['error'] = "Área inexistente.";
+            return response()->json($array, 404);
+        }
+
+        $disabledDays = AreaDisabledDay::where("area_id", $id)->get();
+        foreach ($disabledDays as $day){
+            $array['response'][] = $day;
         }
 
         return response()->json($array);

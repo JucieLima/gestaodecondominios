@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Models\AreaDisabledDay;
 use App\Models\Reservation;
 use App\Models\Unit;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,12 +15,11 @@ class ReservationController extends Controller
     /**
      * @param int $id
      * @param Request $request
-     * @return string[]
+     * @return JsonResponse
      */
-    public function setReservation(int $id, Request $request): array
+    public function setReservation(int $id, Request $request): JsonResponse
     {
-        $array = ['error' => ''];
-
+        $array = [];
         $validator = Validator::make($request->all(),[
             'date' => 'required|date_format:Y-m-d',
             'time' => 'required|date_format:H:i:s',
@@ -28,7 +28,7 @@ class ReservationController extends Controller
 
         if($validator->fails()){
             $array['error'] = $validator->errors()->first();
-            return $array;
+            return response()->json($array, 400);
         }
 
         $unit = Unit::find($request->input('unit'));
@@ -36,10 +36,10 @@ class ReservationController extends Controller
 
         if(!$unit){
             $array['error'] = "A unidade que você informou não está cadastrada no sistema!";
-            return $array;
+            return response()->json($array, 404);
         }elseif (!$area){
             $array['error'] = "A área que você informou não está cadastrada no sistema!";
-            return $array;
+            return response()->json($array, 404);
         }
 
         $can = true;
@@ -49,32 +49,33 @@ class ReservationController extends Controller
         $allowedDays = explode(',', $area['days']);
         $start = strtotime($area['starts_at']);
         $end = strtotime("-1 hour", strtotime($area['ends_at']));
-        $reservation_time= strtotime($request->input('time'));
+        $reservation_time = strtotime($request->input('date').' '.$request->input('time'));
 
         if(!in_array($weekDay, $allowedDays)){
             $can = false;
             $array['day'] = false;
-        }else if($reservation_time < $start || $reservation_time > $end){
+        }else if($area['mode'] == 'hour' && ($reservation_time < $start || $reservation_time > $end)){
             $array['hour'] = false;
             $can = false;
         }
 
         //Verifica se a data e hora já passaram
         if($reservation_time < strtotime(date('Y-m-d H:00:00'))){
+            $array['date'] = date('Y-m-d H:i:s', strtotime($reservation_time));
             $array['day'] = false;
             $array['hour'] = false;
             $can = false;
         }
 
         //Verifica se está fora dos disabled days
-        $existingDisabledDays = AreaDisabledDay::where("area", $id)->where("date", $request->input('date'))->count();
+        $existingDisabledDays = AreaDisabledDay::where("area_id", $id)->where("date", $request->input('date'))->count();
         if($existingDisabledDays > 0){
             $array['out'] = true;
             $can = false;
         }
 
         //Verifica se não existe outra reserva no mesmo dia/hora.
-        $existingReservation = Reservation::where("area", $id)
+        $existingReservation = Reservation::where("area_id", $id)
             ->where("date", $request->input('date'). ' '.$request->input('time'))
             ->count();
 
@@ -85,66 +86,28 @@ class ReservationController extends Controller
 
         if(!$can){
             $array['error'] = "Reserva não permitida neste dia e horário!";
-            return $array;
+            return response()->json($array, 400);
         }
 
         $reservation = new Reservation();
-        $reservation->unit = $request->input('unit');
-        $reservation->area = $id;
+        $reservation->unit_id = $request->input('unit');
+        $reservation->area_id = $id;
         $reservation->date = $request->input('date') . ' ' . $request->input('time');
         $reservation->save();
 
         $array['result'] = "Reserva realizada com sucesso!";
 
-        return $array;
-    }
-
-    /**
-     * @param int $id
-     * @return array|string[]
-     */
-    public function getDisabledDates(int $id): array
-    {
-        $array = ['error' => ''];
-
-        $area = Area::find($id);
-        if(!$area){
-            $array['error'] = "Área inexistente.";
-            return $array;
-        }
-
-        $disabledDays = AreaDisabledDay::where("id", $id)->get();
-        foreach ($disabledDays as $day){
-            $array['list'][] = $day;
-        }
-        $offDays = [];
-        $allowedDays = explode(',', $area['days']);
-        for($q = 0; $q < 7; $q++){
-            if(!in_array($q, $allowedDays)){
-                $offDays[] = $q;
-            }
-        }
-
-        $start = time();
-        $end = strtotime('+3 months');
-        for($current = $start; $current < $end; $current = strtotime('+1 day', $current)){
-            $wd = date('w', $current);
-            if(in_array($wd, $offDays)){
-                $array['list'][] = date('Y-m-d', $current);
-            }
-        }
-
-        return $array;
+        return response()->json($array);
     }
 
     /**
      * @param int $id
      * @param Request $request
-     * @return array|string[]
+     * @return JsonResponse
      */
-    public function getTimes(int $id, Request $request): array
+    public function getTimes(int $id, Request $request): JsonResponse
     {
-        $array = ['error' => ''];
+        $array = [];
 
         $validator = Validator::make($request->all(),[
             'date' => 'required|date_format:Y-m-d'
@@ -152,7 +115,7 @@ class ReservationController extends Controller
 
         if($validator->fails()){
             $array['error'] = $validator->errors()->first();
-            return $array;
+            return response()->json($array, 401);
         }
 
         $date = $request->input('date');
@@ -160,14 +123,14 @@ class ReservationController extends Controller
 
         if(!$area){
             $array['error'] = 'Área inexistente.';
-            return $array;
+            return response()->json($array, 404);
         }
 
         $can = true;
 
         //Verificar se o dia está desabilitado
-        $existingDisabledDay = AreaDisabledDay::where("id", $id)
-            ->where("day", $date)
+        $existingDisabledDay = AreaDisabledDay::where("area_id", $id)
+            ->where("date", $date)
             ->count();
 
         if($existingDisabledDay > 0){
@@ -176,22 +139,24 @@ class ReservationController extends Controller
         //Verificar se o dia está habilitado
         $allowedDays = explode(',', $area['days']);
         $weekday = date('w', strtotime($date));
-        if(!in_array($weekday, $allowedDays)){
+
+        $myWeek = [6, 0, 1, 2, 3, 4, 5];
+
+        if(!in_array($myWeek[$weekday], $allowedDays)){
             $can = false;
         }
 
+        $start = strtotime($area['starts_at']);
+        $end = strtotime(($area['ends_at']));
+
+        $times = [];
+        $timeList = [];
+
+        for($lastTime = $start; $lastTime < $end; $lastTime = strtotime('+1 hour', $lastTime)){
+            $times[] = $lastTime;
+        }
+
         if($can){
-
-            $start = strtotime($area['starts_at']);
-            $end = strtotime(($area['ends_at']));
-
-            $times = [];
-
-            for($lastTime = $start; $lastTime < $end; $lastTime = strtotime('+1 hour', $lastTime)){
-                $times[] = $lastTime;
-            }
-
-            $timeList = [];
             foreach ($times as $time){
                 $timeList[] = [
                   'id' => date('H:i:s', $time),
@@ -201,7 +166,7 @@ class ReservationController extends Controller
             }
 
             //Remover reservas
-            $reservations = Reservation::where('area', $id)
+            $reservations = Reservation::where('area_id', $id)
             ->whereBetween('date', [
                 $date.' 00:00:00',
                 $date.' 23:59:59'
@@ -210,34 +175,44 @@ class ReservationController extends Controller
 
             $toRemove = [];
             foreach ($reservations as $reservation){
-                $toRemove[] = date('H:i:s', strtotime($reservation['day']));
+                $toRemove[] = date('H:i:s', strtotime($reservation['date']));
             }
             foreach ($timeList as $item){
                 if(in_array($item['id'], $toRemove)){
 
                     $item['available'] = false;
                 }
-                $array['list'][] = $item;
+                $array['response'][] = $item;
             }
 
             //Remover horários que já passaram
             if($date == date('Y-m-d')){
-                for($i = 0; $i < count($array['list']); $i++){
-                    if($array['list'][$i]['id'] < date('H:00:00')){
-                        $array['list'][$i]['available'] = false;
+                for($i = 0; $i < count($array['response']); $i++){
+                    if($array['response'][$i]['id'] < date('H:00:00')){
+                        $array['response'][$i]['available'] = false;
                     }
                 }
             }
 
             //Remover dias que já passaram
             if($date < date('Y-m-d')){
-                for($i = 0; $i < count($array['list']); $i++){
-                    $array['list'][$i]['available'] = false;
+                for($i = 0; $i < count($array['response']); $i++){
+                    $array['response'][$i]['available'] = false;
                 }
             }
 
+        }else{
+            foreach ($times as $time){
+                $timeList[] = [
+                    'id' => date('H:i:s', $time),
+                    'title' =>   date('H:i', $time).' - '. date('H:i', strtotime('+1 hour', $time)),
+                    'available' => false
+                ];
+            }
+
+            $array['response'] = $timeList;
         }
-        return $array;
+        return response()->json($array);
     }
 
     /**
@@ -269,7 +244,7 @@ class ReservationController extends Controller
            $start = date('d/m/Y H:i:s', strtotime($reservation['date']));
            $dateEnd = date('d/m/Y H:i:s', strtotime('+1 hour', strtotime($reservation['date'])));
            $date = $start. ' à ' . $dateEnd;
-           $array['list'][] = [
+           $array['response'][] = [
                'id' => $reservation['id'],
                'area' => $reservation['area_id'],
                'title' => $area['title'],

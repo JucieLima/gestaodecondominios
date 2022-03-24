@@ -18,4 +18,12 @@ class Unit extends Model
     {
         return $this->hasMany(Reservation::class);
     }
+
+    /**
+     * @return HasMany
+     */
+    public function residents(): HasMany
+    {
+        return $this->hasMany(Resident::class);
+    }
 }
