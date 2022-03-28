@@ -47,21 +47,21 @@ class ReservationController extends Controller
         //Verifica se está dentro da disponibilidade de dia e hora
         $weekDay = date('w', strtotime($request->input('date')));
         $allowedDays = explode(',', $area['days']);
-        $start = strtotime($area['starts_at']);
-        $end = strtotime("-1 hour", strtotime($area['ends_at']));
-        $reservation_time = strtotime($request->input('date').' '.$request->input('time'));
+        $start = intval(explode(":", $area['starts_at'])[0]);
+        $end =  intval(explode(":", $area['ends_at'])[0]) - 1;
+        $reservation_start = intval(explode(":",$request->input('time'))[0]);
 
         if(!in_array($weekDay, $allowedDays)){
             $can = false;
             $array['day'] = false;
-        }else if($area['mode'] == 'hour' && ($reservation_time < $start || $reservation_time > $end)){
-            $array['hour'] = false;
+        }else if($area['mode'] == 'hour' && ($reservation_start < $start || $reservation_start > $end)){
+            $array['hour'] = $reservation_start;
             $can = false;
         }
 
         //Verifica se a data e hora já passaram
-        if($reservation_time < strtotime(date('Y-m-d H:00:00'))){
-            $array['date'] = date('Y-m-d H:i:s', strtotime($reservation_time));
+        if($reservation_start < strtotime(date('h'))){
+            $array['date'] = date('Y-m-d H:i:s', strtotime($request->input('date'). ' '.$request->input('time')));
             $array['day'] = false;
             $array['hour'] = false;
             $can = false;
@@ -85,7 +85,10 @@ class ReservationController extends Controller
         }
 
         if(!$can){
-            $array['error'] = "Reserva não permitida neste dia e horário!";
+            $reservationDate = $area['mode']  == "hour"
+            ? date('d/m/Y à\s H:i', strtotime($request->input('date'). ' '.$request->input('time')))
+            : date('d/m/Y', strtotime($request->input('date')));
+            $array['error'] = "Reserva não permitida neste dia e horário: {$reservationDate}";
             return response()->json($array, 400);
         }
 
@@ -217,71 +220,72 @@ class ReservationController extends Controller
 
     /**
      * @param Request $request
-     * @return array|string[]
+     * @return JsonResponse
      */
-    public function getMyReservations(Request $request): array
+    public function getMyReservations(Request $request): JsonResponse
     {
-        $array = ['error' => ''];
+        $array = [];
         $unit = $request->input(['unit']);
         if(!$unit){
             $array = ['error' => 'Informe a unidade!'];
-            return $array;
+            return response()->json($array, 400);
         }
 
         $find = Unit::find($unit);
         if(!$find){
             $array = ['error' => 'Unidade não localizada no sistema!'];
-            return $array;
+            return response()->json($array, 404);
         }
 
-        $reservations = Reservation::where('unit', $unit)
+        $reservations = Reservation::where('unit_id', $unit)
             ->where('date', '>=', date('Y-m-d H:00:00'))
             ->orderBy('date', 'ASC')
             ->get();
 
         foreach ($reservations as $reservation){
            $area = Area::find($reservation['area_id']);
-           $start = date('d/m/Y H:i:s', strtotime($reservation['date']));
-           $dateEnd = date('d/m/Y H:i:s', strtotime('+1 hour', strtotime($reservation['date'])));
-           $date = $start. ' à ' . $dateEnd;
+           $start = date('d/m/Y - H:i:s', strtotime($reservation['date']));
+           $end = date('H:i:s', strtotime('+1 hour', strtotime($reservation['date'])));
+           $date = $area['mode'] == "hour" ? $start. ' a ' . $end : explode(' ', $start)[0];
+
            $array['response'][] = [
                'id' => $reservation['id'],
                'area' => $reservation['area_id'],
                'title' => $area['title'],
-               'cover' => asset('storage/'.$area['cover']),
+               'cover' => 'storage/'.$area['cover'],
                'reservation' => $date,
                'start' => $start
            ];
         }
 
-        return $array;
+        return response()->json($array);
     }
 
     /**
      * @param int $id
-     * @return string[]
+     * @return JsonResponse
      */
-    public function deleteMyReservation(int $id): array
+    public function deleteMyReservation(int $id): JsonResponse
     {
-        $array = ['error' => ''];
+        $array = [];
 
         $user = auth()->user();
         $reservation = Reservation::find($id);
         if(!$reservation){
             $array['error'] = "Reserva inexistente!";
-            return $array;
+            return response()->json($array, 404);
         }
 
         $unit = Unit::where('id', $reservation['unit_id'])->where('owner', $user['id'])->count();
 
         if($unit < 1){
             $array['error'] = "Não é possível excluir reservas realizadas por outros usuários.";
-            return $array;
+            return response()->json($array, 401);
         }
 
-        $reservation->delete();
-        $array['result'] = "Reserva excluída com sucesso!";
+        //$reservation->delete();
+        $array['response'] = "Reserva excluída com sucesso!";
 
-        return $array;
+        return response()->json($array);
     }
 }
