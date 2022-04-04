@@ -50,6 +50,8 @@ Route::middleware('auth:api')->group(function(){
     Route::get('/lost-and-found', [LostAndFoundController::class,'getAll']);
     Route::post('/lost-and-found', [LostAndFoundController::class,'insert']);
     Route::post('/lost-and-found/{id}', [LostAndFoundController::class,'update']);
+    Route::delete('/lost-and-found/{id}', [LostAndFoundController::class,'destroy']);
+    Route::post('/lost-and-found/{id}/claim', [LostAndFoundController::class,'claim']);
 
     //Unidade
     Route::get('unit/{id}', [UnitController::class, 'getInfo']);
