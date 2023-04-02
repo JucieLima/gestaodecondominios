@@ -1,17 +1,17 @@
 <?php
 
-use App\Http\Controllers\AreaController;
+use App\Http\Controllers\Api\AreaController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BilletController;
+use App\Http\Controllers\Api\DocumentController;
+use App\Http\Controllers\Api\LostAndFoundController;
+use App\Http\Controllers\Api\ReservationController;
+use App\Http\Controllers\Api\UnitController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WallController;
+use App\Http\Controllers\Api\WarningController;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BilletController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\LostAndFoundController;
-use App\Http\Controllers\ReservationController;
-use App\Http\Controllers\UnitController;
-use App\Http\Controllers\WallController;
-use App\Http\Controllers\WarningController;
-use \App\Http\Controllers\UserController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -56,11 +56,15 @@ Route::middleware('auth:api')->group(function(){
     //Unidade
     Route::get('unit/{id}', [UnitController::class, 'getInfo']);
     Route::post('unit/{id}/add-person', [UnitController::class, 'addPerson']);
+    Route::delete('unit/{id}/remove-person', [UnitController::class, 'removePerson']);
+    Route::get('unit/{id}/vehicles', [UnitController::class, 'vehicles']);
     Route::post('unit/{id}/add-vehicle', [UnitController::class, 'addVehicle']);
+    Route::post('unit/{id}/update-vehicle', [UnitController::class, 'updateVehicle']);
+    Route::delete('unit/{id}/remove-vehicle', [UnitController::class, 'removeVehicle']);
+    Route::get('unit/{id}/pets', [UnitController::class, 'pets']);
     Route::post('unit/{id}/add-pet', [UnitController::class, 'addPet']);
-    Route::post('unit/{id}/remove-person', [UnitController::class, 'removePerson']);
-    Route::post('unit/{id}/remove-vehicle', [UnitController::class, 'removeVehicle']);
-    Route::post('unit/{id}/remove-pet', [UnitController::class, 'removePet']);
+    Route::post('unit/{id}/update-pet', [UnitController::class, 'updatePet']);
+    Route::delete('unit/{id}/remove-pet', [UnitController::class, 'removePet']);
 
     //Areas
     Route::get('areas',[AreaController::class, 'index']);

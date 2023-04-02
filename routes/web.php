@@ -16,3 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/symbolic', function (){
+    $target = storage_path('app/public');
+    $link = $_SERVER['DOCUMENT_ROOT'].'/sorage';
+    symlink($target, $link);
+});

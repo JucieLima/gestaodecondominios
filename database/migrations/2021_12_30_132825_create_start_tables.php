@@ -50,6 +50,7 @@ class CreateStartTables extends Migration
             $table->string('race');
             $table->string('photo');
             $table->unsignedBigInteger('unit');
+            $table->tinyText('description');
         });
 
         Schema::create('walls', function (Blueprint $table) {

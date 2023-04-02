@@ -9,5 +9,4 @@ class UnitVehicle extends Model
 {
     use HasFactory;
     public $timestamps = false;
-    protected $hidden = ['unit'];
 }

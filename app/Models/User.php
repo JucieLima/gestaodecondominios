@@ -56,7 +56,8 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    public function residence(){
+    public function residence(): HasOne
+    {
         return $this->hasOne(Resident::class);
     }
 }
